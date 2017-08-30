@@ -26,7 +26,8 @@ var log = function() {
 
 var getImages = (function() {
     var httpRegex, imageRegex, filePathRegex, pngRegex, retinaRegex;
-
+    
+    // only background-image 
     imageRegex    = new RegExp('background-image:[\\s]*url\\(["\']?([\\w\\d\\s!:./\\-\\_@]*\\.[\\w?#]+)["\']?\\)[^;]*\\;(?:\\s*\\/\\*\\s*@meta\\s*(\\{.*\\})\\s*\\*\\/)?', 'ig');
     retinaRegex   = new RegExp('@(\\d)x\\.[a-z]{3,4}$', 'ig');
     httpRegex     = new RegExp('http[s]?', 'ig');
