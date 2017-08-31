@@ -24,11 +24,11 @@ var log = function() {
     gutil.log.apply(gutil, args);
 };
 
+
 var getImages = (function() {
     var httpRegex, imageRegex, filePathRegex, pngRegex, retinaRegex;
-    
-    // only background-image 
-    imageRegex    = new RegExp('background-image:[\\s]*url\\(["\']?([\\w\\d\\s!:./\\-\\_@]*\\.[\\w?#]+)["\']?\\)[^;]*\\;(?:\\s*\\/\\*\\s*@meta\\s*(\\{.*\\})\\s*\\*\\/)?', 'ig');
+
+    imageRegex    = new RegExp('background-image:[\\s]?url\\(["\']?([\\w\\d\\s!:./\\-\\_@]*\\.[\\w?#]+)["\']?\\)[^;]*\\;(?:\\s*\\/\\*\\s*@meta\\s*(\\{.*\\})\\s*\\*\\/)?', 'ig');
     retinaRegex   = new RegExp('@(\\d)x\\.[a-z]{3,4}$', 'ig');
     httpRegex     = new RegExp('http[s]?', 'ig');
     pngRegex      = new RegExp('\\.png$', 'ig');
@@ -59,7 +59,7 @@ var getImages = (function() {
             meta  = reference[2];
 
             image = {
-                replacement: new RegExp('background-image:\\s*url\\(\\s?(["\']?)\\s?' + makeRegexp(url) + '\\s?\\1\\s?\\)[^;]*\\;', 'gi'),
+                replacement: new RegExp('background-image:\\s+url\\(\\s?(["\']?)\\s?' + makeRegexp(url) + '\\s?\\1\\s?\\)[^;]*\\;', 'gi'),
                 url:         url,
                 group:       [],
                 isRetina:    false,
@@ -99,7 +99,6 @@ var getImages = (function() {
             } else {
                 filePath = path.resolve(file.path.substring(0, file.path.lastIndexOf(path.sep)), filePath);
             }
-
             image.path = filePath;
 
             // reset lastIndex
@@ -112,7 +111,6 @@ var getImages = (function() {
 
         // reset lastIndex
         imageRegex.lastIndex = 0;
-
         // remove nulls and duplicates
         images = _.chain(images)
             .filter()
@@ -143,7 +141,6 @@ var getImages = (function() {
                             if (err) {
                                 return reject(err);
                             }
-
                             resolve(images);
                         }
                     );
@@ -162,7 +159,6 @@ var getImages = (function() {
                                         if (group) {
                                             image.group.push(group);
                                         }
-
                                         done(null, image);
                                     })
                                     .catch(done);
@@ -172,7 +168,6 @@ var getImages = (function() {
                             if (err) {
                                 return reject(err);
                             }
-
                             resolve(images);
                         }
                     );
@@ -199,11 +194,9 @@ var callSpriteSmithWith = (function() {
 
     return function(images, options) {
         var all;
-
         all = _.chain(images)
             .groupBy(function(image) {
                 var tmp;
-
                 tmp = image.group.map(mask(true));
                 tmp.unshift('_');
 
@@ -215,8 +208,8 @@ var callSpriteSmithWith = (function() {
                 config = _.merge({}, options, {
                     src: _.map(images, 'path')
                 });
-
                 // enlarge padding, if its retina
+
                 if (_.every(images, function(image) {return image.isRetina})) {
                     ratio = _.chain(images).flatten('retinaRatio').uniq().value();
                     if (ratio.length == 1) {
@@ -230,9 +223,9 @@ var callSpriteSmithWith = (function() {
 
                     // append info about sprite group
                     result.group = tmp.map(mask(false));
-
                     return result;
                 });
+
             })
             .value();
 
@@ -303,7 +296,7 @@ var exportSprites = (function() {
 
 
                 return result;
-            });            
+            });
 
             return results;
         }
@@ -348,7 +341,7 @@ module.exports = function(options) { 'use strict';
     };
 
     options = _.merge({
-        src:        [],        
+        src:        [],
         algorithm:  "top-down",
         padding:    0,
         engineOpts: {},
@@ -398,10 +391,9 @@ module.exports = function(options) { 'use strict';
         var deferred = Q.defer();
 
         fs.access(image.path, function(err) {
-            !err && options.verbose && log(image.path + ' has been skipped as it does not exist!');
-            deferred.resolve(!err);
+          !err && options.verbose && log(image.path + ' has been skipped as it does not exist!');
+          deferred.resolve(!err);
         });
-
         return deferred.promise;
     });
 
