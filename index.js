@@ -116,7 +116,7 @@ var getImages = (function() {
         // remove nulls and duplicates
         images = _.chain(images)
             .filter()
-            .unique(function(image) {
+            .uniq(function(image) {
                 return image.path;
             })
             .value();
@@ -132,9 +132,9 @@ var getImages = (function() {
                             async.filter(
                                 images,
                                 function(image, ok) {
-                                    Q(filter(image)).then(ok);
+                                    Q(filter(image)).then(function(data) {ok(null, data);});
                                 },
-                                function(images) {
+                                function(err, images) {
                                     next(null, images);
                                 }
                             );
@@ -213,18 +213,18 @@ var callSpriteSmithWith = (function() {
                 var config, ratio;
 
                 config = _.merge({}, options, {
-                    src: _.pluck(images, 'path')
+                    src: _.map(images, 'path')
                 });
 
                 // enlarge padding, if its retina
                 if (_.every(images, function(image) {return image.isRetina})) {
-                    ratio = _.chain(images).flatten('retinaRatio').unique().value();
+                    ratio = _.chain(images).flatten('retinaRatio').uniq().value();
                     if (ratio.length == 1) {
                         config.padding = config.padding * ratio[0];
                     }
                 }
 
-                return Q.nfcall(spritesmith, config).then(function(result) {
+                return Q.nfcall(spritesmith.run, config).then(function(result) {
                     tmp = tmp.split(GROUP_DELIMITER);
                     tmp.shift();
 
@@ -348,8 +348,7 @@ module.exports = function(options) { 'use strict';
     };
 
     options = _.merge({
-        src:        [],
-        engine:     "pngsmith", //auto
+        src:        [],        
         algorithm:  "top-down",
         padding:    0,
         engineOpts: {},
@@ -398,9 +397,9 @@ module.exports = function(options) { 'use strict';
     options.filter.push(function(image) {
         var deferred = Q.defer();
 
-        fs.exists(image.path, function(exists) {
-            !exists && options.verbose && log(image.path + ' has been skipped as it does not exist!');
-            deferred.resolve(exists);
+        fs.access(image.path, function(err) {
+            !err && options.verbose && log(image.path + ' has been skipped as it does not exist!');
+            deferred.resolve(!err);
         });
 
         return deferred.promise;
@@ -487,7 +486,7 @@ module.exports = function(options) { 'use strict';
                             .reduce(function(images, portion) {
                                 return images.concat(portion);
                             }, [])
-                            .unique(function(image) {
+                            .uniq(function(image) {
                                 return image.path;
                             })
                             .value();
