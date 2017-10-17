@@ -10,7 +10,9 @@ var path        = require('path'),
     Q           = require('q'),
     through     = require('through2'),
     Readable    = require('stream').Readable,
-
+    checksum    = require('checksum'),
+    cs          = checksum('dshaw'),
+    
     PLUGIN_NAME = "gulp-sprite-generator",
     debug;
 
@@ -28,7 +30,7 @@ var log = function() {
 var getImages = (function() {
     var httpRegex, imageRegex, filePathRegex, pngRegex, retinaRegex;
 
-    imageRegex    = new RegExp('background-image:[\\s]*url\\(["\']?([\\w\\d\\s!:./\\-\\_@]*\\.[\\w?#]+)["\']?\\)[^;]*\\;(?:\\s*\\/\\*\\s*@meta\\s*(\\{.*\\})\\s*\\*\\/)?', 'ig');
+    imageRegex    = new RegExp('background-image:[\\s]*url\\(["\']?([\\w\\d\\s!:./\\-\\_@]*\\.[\\w?#]+)["\']?\\)[^;]*\\;?(?:\\s*\\/\\*\\s*@meta\\s*(\\{.*\\})\\s*\\*\\/)?', 'ig');
     retinaRegex   = new RegExp('@(\\d)x\\.[a-z]{3,4}$', 'ig');
     httpRegex     = new RegExp('http[s]?', 'ig');
     pngRegex      = new RegExp('\\.png$', 'ig');
@@ -41,7 +43,10 @@ var getImages = (function() {
             makeRegexp, content;
 
         content = file.contents.toString();
-
+        
+        // remove comments
+        content = content.replace(/\/\*[\s\S]*?\*\//g, '');
+        
         images = [];
 
         basename = path.basename(file.path);
@@ -57,16 +62,16 @@ var getImages = (function() {
         while ((reference = imageRegex.exec(content)) != null) {
             url   = reference[1];
             meta  = reference[2];
-
+            
             image = {
-                replacement: new RegExp('background-image:\\s*url\\(\\s?(["\']?)\\s?' + makeRegexp(url) + '\\s?\\1\\s?\\)[^;]*\\;', 'gi'),
+                replacement: new RegExp('background-image:\\s*url\\(\\s?(["\']?)\\s?\S*' + makeRegexp(url) + '\\s?\\1\\s?\\)[^;]*\\;?', 'gi'),
                 url:         url,
                 group:       [],
                 isRetina:    false,
                 retinaRatio: 1,
                 meta:        {}
             };
-
+            
             if (httpRegex.test(url)) {
                 options.verbose && log(colors.cyan(basename) + ' > ' + url + ' has been skipped as it\'s an external resource!');
                 continue;
@@ -93,7 +98,7 @@ var getImages = (function() {
 
             filePath = filePathRegex.exec(url)[0].replace(/['"]/g, '');
 
-            // if url to image is relative
+            // if url to image is relative            
             if(filePath.charAt(0) === "/") {
                 filePath = path.resolve(options.baseUrl + filePath);
             } else {
@@ -105,10 +110,17 @@ var getImages = (function() {
             [httpRegex, pngRegex, retinaRegex, filePathRegex].forEach(function(regex) {
                 regex.lastIndex = 0;
             });
-
+            
+            // check to find the image as a result arr
+//            for (var i = 0; i < images.length; i++) {
+//        		if (image.path === images[i].path) {
+//        			continue;
+//        		}
+//        	}
+            
             images.push(image);
         }
-
+        
         // reset lastIndex
         imageRegex.lastIndex = 0;
         // remove nulls and duplicates
@@ -179,7 +191,7 @@ var getImages = (function() {
 var callSpriteSmithWith = (function() {
     var GROUP_DELIMITER = ".",
         GROUP_MASK = "*";
-
+    
     // helper function to minimize user group names symbols collisions
     function mask(toggle) {
         var from, to;
@@ -240,25 +252,25 @@ var callSpriteSmithWith = (function() {
 
 var updateReferencesIn = (function() {
     var template;
+    var str = 'background-image: url("<%= spriteSheetPath %>");\n    ' +
+    		  'background-position: -<%= isRetina ? (coordinates.x / retinaRatio) : coordinates.x %>px -<%= isRetina ? (coordinates.y / retinaRatio) : coordinates.y %>px;\n    ' +
+    		  'background-size: <%= isRetina ? (properties.width / retinaRatio) : properties.width %>px <%= isRetina ? (properties.height / retinaRatio) : properties.height %>px!important;'; 
 
-    template = _.template(
-        'background-image: url("<%= spriteSheetPath %>");\n    ' +
-        'background-position: -<%= isRetina ? (coordinates.x / retinaRatio) : coordinates.x %>px -<%= isRetina ? (coordinates.y / retinaRatio) : coordinates.y %>px;\n    ' +
-        'background-size: <%= isRetina ? (properties.width / retinaRatio) : properties.width %>px <%= isRetina ? (properties.height / retinaRatio) : properties.height %>px!important;'
-    );
-
-    return function(file) {
+    return function(file, options) {
         var content = file.contents.toString();
-
-        return function(results) {
+        
+        return function(results, options) {
+        	
             results.forEach(function(images) {
-                images.forEach(function(image) {
-                    content = content.replace(image.replacement, template(image));
+                images.forEach(function(image) {                	
+                	str = (options.cssMin) ? str.replace('\n', '').replace(/\s+/g, ' ') : str;
+                	template = _.template(str);
+            		content = content.replace(image.replacement, template(image));
                 });
             });
-
+            
             return Q(content);
-        }
+        }        
     }
 })();
 
@@ -303,17 +315,24 @@ var exportSprites = (function() {
     }
 })();
 
-var exportStylesheet = function(stream, options) {
+var exportStylesheet = function(stream, options, file) {
     return function(content) {
-        var stylesheet;
-
+    	
+    	var stylesheet,
+    		path = options.styleSheetName,
+    		basePath = file.path.replace(file.cwd, "").match(/\/[\s\S]*\//)[0],
+    		replaceDir = options.replaceDirCssFiles || '';
+    	
+    	if (options.changePath) {
+        	basePath = (basePath.charAt(0) === '/') ? basePath.slice(1) : basePath;
+        	path =  basePath + options.styleSheetName;    	
+    	}   
         stylesheet = new File({
-            path: options.styleSheetName,
+            path:  path,
             contents: new Buffer(content)
         });
-
+        
         stream.push(stylesheet);
-
         options.verbose && log('Stylesheet', options.styleSheetName, 'has been created');
     }
 };
@@ -332,7 +351,38 @@ var mapSpritesProperties = function(images, options) {
     }
 };
 
-module.exports = function(options) { 'use strict';
+var filterImageProcessing = function(images) {
+	return new Promise(function(resolve, reject){		
+		var uniqSumm = {};
+        
+        for (var i = 0, j = 0; i < images.length; i++) {
+        	checksum.file(images[i].path, function (err, sum) {
+                
+                if(typeof (uniqSumm[sum]) === 'undefined'){
+                	uniqSumm[sum] = images[j];
+                }
+                
+                if ((j += 1) === images.length) {
+                	var arr1 = {};
+                	
+                	for (var key in uniqSumm) {
+                		var elem = uniqSumm[key];
+                		arr1[elem['path']] = elem;
+                	}
+                	
+                	var arr2 = [];
+                	for (var key in arr1) {                		
+                		arr2.push(arr1[key]);
+                	}                	
+                	resolve(arr2);
+            	}
+              });		                	
+    	}
+	});
+};
+
+module.exports = function(options) { 
+	'use strict';
     var stream, styleSheetStream, spriteSheetStream;
 
     debug = {
@@ -360,7 +410,11 @@ module.exports = function(options) { 'use strict';
         filter:          [],
         groupBy:         [],
         accumulate:      false,
-        verbose:         false
+        verbose:         false,
+        cssMin:          false,
+        changePath:      false,
+        options:         false
+        
     }, options || {});
 
     // check necessary properties
@@ -413,7 +467,7 @@ module.exports = function(options) { 'use strict';
     styleSheetStream = new Readable({objectMode: true});
     spriteSheetStream = new Readable({objectMode: true});
     spriteSheetStream._read = styleSheetStream._read = noop;
-
+    
     var accumulatedFiles = [];
 
     stream = through.obj(
@@ -427,7 +481,7 @@ module.exports = function(options) { 'use strict';
                 this.emit('error', new gutil.PluginError(PLUGIN_NAME, 'Streams is not supported!'));
                 return done();
             }
-
+            
             if (file.isBuffer()) {
                 // postpone evaluation, if we accumulating
                 if (options.accumulate) {
@@ -438,11 +492,14 @@ module.exports = function(options) { 'use strict';
                 }
 
                 getImages(file, options)
+                	.then(function(images) {
+                		return filterImageProcessing(images);
+		            })
                     .then(function(images) {
                         callSpriteSmithWith(images, options)
                             .then(exportSprites(spriteSheetStream, options))
                             .then(mapSpritesProperties(images, options))
-                            .then(updateReferencesIn(file))
+                            .then(updateReferencesIn(file, options))
                             .then(exportStylesheet(styleSheetStream, _.extend({}, options, { styleSheetName: options.styleSheetName || path.basename(file.path) })))
                             .then(function() {
                                 // pipe source file
@@ -465,7 +522,7 @@ module.exports = function(options) { 'use strict';
         // flush
         function(done) {
             var pending;
-
+            
             if (options.accumulate) {
                 pending = Q
                     .all(accumulatedFiles.map(function(file) {
@@ -483,14 +540,17 @@ module.exports = function(options) { 'use strict';
                             })
                             .value();
                     })
+		            .then(function(images) {
+                    	return filterImageProcessing(images);
+		            })
                     .then(function(images) {
                         return callSpriteSmithWith(images, options)
                             .then(exportSprites(spriteSheetStream, options))
                             .then(mapSpritesProperties(images, options))
                             .then(function(results) {
                                 return Q.all(accumulatedFiles.map(function(file) {
-                                    return updateReferencesIn(file)(results)
-                                        .then(exportStylesheet(styleSheetStream, _.extend({}, options, { styleSheetName: path.basename(file.path) })));
+                                    return updateReferencesIn(file, options)(results, options)
+                                        .then(exportStylesheet(styleSheetStream, _.extend({}, options, { styleSheetName: path.basename(file.path) }), file))
                                 }));
                             });
                     })
@@ -516,6 +576,6 @@ module.exports = function(options) { 'use strict';
 
     stream.css = styleSheetStream;
     stream.img = spriteSheetStream;
-
+    
     return stream;
 };
