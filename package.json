@@ -52,7 +52,8 @@
     "q": "^1.4.1",
     "spritesmith": "^3.1.0",
     "through2": "^2.0.3",
-    "vinyl": "^2.0.1"
+    "vinyl": "^2.0.1",
+    "looks-same": "^3.2.1"
   },
   "deprecated": false,
   "description": "Plugin that generate sprites from your stylesheets (using spritesmith) and then updates the references.",
