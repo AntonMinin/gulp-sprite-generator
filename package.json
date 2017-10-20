@@ -31,13 +31,20 @@
   },
   "dependencies": {
     "async": "^0.2.10",
+    "clone": "^2.1.1",
+    "clone-stats": "^1.0.0",
+    "concat-stream": "^1.5.1",
     "colors": "^0.6.2",
     "gulp-util": "^2.2.14",
-    "lodash": "^2.4.1",
-    "q": "^1.0.1",
+    "isarray": "^1.0.0",
     "layout": "^2.2.0",
+    "lodash": "^4.17.2",
+    "readable-stream": "^2.0.0,
+    "replace-ext": "^1.0.0",
+    "semver": "^5.0.3",
     "spritesmith": "^0.18.0",
     "through2": "^0.4.1",
-    "vinyl": "^0.2.3"    
+    "q": "^1.0.1",
+    "vinyl": "^0.2.3"
   }
 }
