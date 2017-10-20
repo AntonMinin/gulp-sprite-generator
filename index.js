@@ -10,8 +10,7 @@ var path        = require('path'),
     Q           = require('q'),
     through     = require('through2'),
     Readable    = require('stream').Readable,
-    checksum    = require('checksum'),
-    cs          = checksum('dshaw'),
+    im          = require('imagemagick'),
     
     PLUGIN_NAME = "gulp-sprite-generator",
     debug;
@@ -111,13 +110,6 @@ var getImages = (function() {
                 regex.lastIndex = 0;
             });
             
-            // check to find the image as a result arr
-//            for (var i = 0; i < images.length; i++) {
-//        		if (image.path === images[i].path) {
-//        			continue;
-//        		}
-//        	}
-            
             images.push(image);
         }
         
@@ -184,6 +176,38 @@ var getImages = (function() {
                         }
                     );
                 });
+            })
+            // acquisition of image metadata
+            .then(function(images) {
+                return Q.Promise(function(resolve, reject) {
+                    async.reduce(
+                        options.groupBy,
+                        images,
+                        function(images, groupBy, next) {
+                            async.map(images, function(image, done) {                            	
+                            	Q(image)
+                                .then(function(image) {
+                                	im.identify(image.path, function(err, features){
+                                		if (err) throw err;
+                                		image.signature = {};
+//                                		image.signature.key = ""+ features["number pixels"] + "_" + features.filesize + "_" + features.geometry;
+                                		image.signature.key = ""+ features.properties.signature;
+                                		image.signature.path = ""+ features.artifacts.filename;
+                                        done(null, image);
+                                	});
+                                })
+                                .catch(done);
+                            	
+                            }, next);
+                        },
+                        function(err, images) {
+                            if (err) {
+                                return reject(err);
+                            }
+                            resolve(images);
+                        }
+                    );
+                });
             });
     }
 })();
@@ -217,18 +241,32 @@ var callSpriteSmithWith = (function() {
             .map(function(images, tmp) {
                 var config, ratio;
 
-                config = _.merge({}, options, {
-                    src: _.map(images, 'path')
-                });
-                // enlarge padding, if its retina
+                function unique(arr) {
+            	  var obj = {};
 
+            	  for (var i = 0; i < arr.length; i++) {
+            	    var str = arr[i];
+            	    obj[str] = true;
+            	  }
+
+            	  return Object.keys(obj);
+            	}
+                
+                function getPath(n) {
+            	  return n.signature.path;
+            	}
+                
+                config = _.merge({}, options, {
+                    src: unique(_.map(images, getPath))
+                });
+                // enlarge padding, if its retina                
                 if (_.every(images, function(image) {return image.isRetina})) {
                     ratio = _.chain(images).flatten('retinaRatio').uniq().value();
                     if (ratio.length == 1) {
                         config.padding = config.padding * ratio[0];
                     }
                 }
-
+                
                 return Q.nfcall(spritesmith.run, config).then(function(result) {
                     tmp = tmp.split(GROUP_DELIMITER);
                     tmp.shift();
@@ -340,44 +378,34 @@ var exportStylesheet = function(stream, options, file) {
 var mapSpritesProperties = function(images, options) {
     return function(results) {
         return results.map(function(result) {
-            return _.map(result.coordinates, function(coordinates, path) {
-                return _.merge(_.find(images, {path: path}), {
-                    coordinates: coordinates,
-                    spriteSheetPath: options.spriteSheetPath ? options.spriteSheetPath + "/" + result.path : result.path,
-                    properties: result.properties
-                });
+    		return _.map(images, function(image) {
+    			return _.merge(image, {
+                  coordinates: result.coordinates[image.signature.path],
+                  spriteSheetPath: options.spriteSheetPath ? options.spriteSheetPath + "/" + result.path : result.path,
+                  properties: result.properties
+              });			 
             });
         });
     }
 };
 
 var filterImageProcessing = function(images) {
-	return new Promise(function(resolve, reject){		
-		var uniqSumm = {};
-        
-        for (var i = 0, j = 0; i < images.length; i++) {
-        	checksum.file(images[i].path, function (err, sum) {
-                
-                if(typeof (uniqSumm[sum]) === 'undefined'){
-                	uniqSumm[sum] = images[j];
-                }
-                
-                if ((j += 1) === images.length) {
-                	var arr1 = {};
-                	
-                	for (var key in uniqSumm) {
-                		var elem = uniqSumm[key];
-                		arr1[elem['path']] = elem;
-                	}
-                	
-                	var arr2 = [];
-                	for (var key in arr1) {                		
-                		arr2.push(arr1[key]);
-                	}                	
-                	resolve(arr2);
-            	}
-              });		                	
+//	return images;
+	return new Promise(function(resolve, reject){
+		var obj = {};
+		for (var i = 0; i < images.length; i++) {
+			
+			var signature = images[i].signature.key;
+			if (typeof (obj[signature]) === 'undefined') {
+				obj[signature] = images[i].signature.path;
+    		}			
     	}
+		
+		for (var i = 0; i < images.length; i++) {			
+			images[i].signature.path = obj[images[i].signature.key];
+		}
+		
+		resolve(images);
 	});
 };
 
@@ -579,3 +607,17 @@ module.exports = function(options) {
     
     return stream;
 };
+
+function createFile(data, name) {
+	var toFile;
+	for (var i = 0; i < data.length; i++) {
+		toFile += JSON.stringify(data[i],'',4) + "\n\n\n\t\t\t/* Следующий массив */\n\n";
+	}
+	
+	fs.writeFile('buildpack/css/sprite/'+ name +'.js', toFile, function(err) {
+	    if(err) {
+	    	console.log(err); throw err;
+	    }
+	    console.log('the file "'+ name +'.js" was created!');
+	});
+}
