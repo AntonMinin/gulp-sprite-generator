@@ -1,68 +1,9 @@
 {
-  "_from": "git://github.com/AntonMinin/gulp-sprite-generator.git",
-  "_id": "gulp-sprite-generator@0.2.3",
-  "_inBundle": false,
-  "_integrity": "sha1-+qaj8RipCPMtjIk9VY3EXuWmbpc=",
-  "_location": "/gulp-sprite-generator",
-  "_phantomChildren": {
-    "bin-pack": "1.0.2",
-    "clone-buffer": "1.0.0",
-    "cloneable-readable": "1.0.0",
-    "core-util-is": "1.0.2",
-    "inherits": "2.0.3",
-    "pixelsmith": "2.1.1",
-    "process-nextick-args": "1.0.7",
-    "remove-trailing-separator": "1.0.1",
-    "string_decoder": "0.10.31",
-    "through2": "2.0.3",
-    "typedarray": "0.0.6",
-    "util-deprecate": "1.0.2"
-  },
-  "_requested": {
-    "type": "git",
-    "raw": "gulp-sprite-generator@git://github.com/AntonMinin/gulp-sprite-generator.git",
-    "name": "gulp-sprite-generator",
-    "escapedName": "gulp-sprite-generator",
-    "rawSpec": "git://github.com/AntonMinin/gulp-sprite-generator.git",
-    "saveSpec": "git://github.com/AntonMinin/gulp-sprite-generator.git",
-    "fetchSpec": "git://github.com/AntonMinin/gulp-sprite-generator.git",
-    "gitCommittish": "master"
-  },
-  "_requiredBy": [
-    "/"
-  ],
-  "_resolved": "git://github.com/AntonMinin/gulp-sprite-generator.git#c64529a284f09ae64fb6b9356f640efacad425ce",
-  "_spec": "gulp-sprite-generator@git://github.com/AntonMinin/gulp-sprite-generator.git",
-  "_where": "/var/www/clients/client1/web1/web",
-  "author": {
-    "name": "Sergey Kamardin",
-    "email": "gobwas@gmail.com",
-    "url": "http://github.com/gobwas"
-  },
-  "bugs": {
-    "url": "https://github.com/gobwas/gulp-sprite-generator/issues"
-  },
-  "bundleDependencies": false,
-  "dependencies": {
-    "async": "^2.1.4",
-    "colors": "^1.1.2",
-    "gulp-util": "^3.0.7",
-    "lodash": "^4.17.2",
-    "pngsmith": "^0.1.5",
-    "q": "^1.4.1",
-    "spritesmith": "^3.1.0",
-    "through2": "^2.0.3",
-    "vinyl": "^2.0.1",
-    "looks-same": "^3.2.1"
-  },
-  "deprecated": false,
+  "name": "gulp-sprite-generator",
+  "version": "0.2.3",
   "description": "Plugin that generate sprites from your stylesheets (using spritesmith) and then updates the references.",
-  "devDependencies": {
-    "chai": "*",
-    "gulp": "*",
-    "mocha": "*"
-  },
-  "homepage": "https://github.com/gobwas/gulp-sprite-generator#readme",
+  "main": "index.js",
+  "test": "mocha test",
   "keywords": [
     "gulpplugin",
     "spritesheet",
@@ -73,16 +14,29 @@
     "spritesmith",
     "css"
   ],
+  "author": {
+    "name": "Sergey Kamardin",
+    "email": "gobwas@gmail.com",
+    "url": "http://github.com/gobwas"
+  },
   "license": "MIT",
-  "main": "index.js",
-  "name": "gulp-sprite-generator",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/gobwas/gulp-sprite-generator.git"
+  "repository": "https://github.com/gobwas/gulp-sprite-generator",
+  "devDependencies": {
+    "mocha": "*",
+    "chai": "*",
+    "gulp": "*"
   },
   "scripts": {
     "test": "mocha ./test"
   },
-  "test": "mocha test",
-  "version": "0.2.3"
+  "dependencies": {
+    "async": "^0.2.10",
+    "colors": "^0.6.2",
+    "gulp-util": "^2.2.14",
+    "lodash": "^2.4.1",
+    "q": "^1.0.1",
+    "spritesmith": "^0.18.0",
+    "through2": "^0.4.1",
+    "vinyl": "^0.2.3"
+  }
 }
