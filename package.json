@@ -39,7 +39,7 @@
     "isarray": "^1.0.0",
     "layout": "^2.2.0",
     "lodash": "^4.17.2",
-    "readable-stream": "^2.0.0,
+    "readable-stream": "^2.0.0",
     "replace-ext": "^1.0.0",
     "semver": "^5.0.3",
     "spritesmith": "^0.18.0",
