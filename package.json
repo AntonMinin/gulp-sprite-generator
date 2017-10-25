@@ -15,9 +15,9 @@
     "css"
   ],
   "author": {
-    "name": "Sergey Kamardin",
-    "email": "gobwas@gmail.com",
-    "url": "http://github.com/gobwas"
+    "name": "",
+    "email": "",
+    "url": ""
   },
   "license": "MIT",
   "repository": "https://github.com/AntonMinin/gulp-sprite-generator",
