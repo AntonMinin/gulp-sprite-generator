@@ -36,6 +36,7 @@
     "lodash": "^2.4.1",
     "q": "^1.0.1",
     "spritesmith": "latest",
+    "imagemagick": "latest",
     "through2": "^0.4.1",
     "vinyl": "^0.2.3"
   }
