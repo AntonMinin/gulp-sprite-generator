@@ -607,17 +607,3 @@ module.exports = function(options) {
     
     return stream;
 };
-
-function createFile(data, name) {
-	var toFile;
-	for (var i = 0; i < data.length; i++) {
-		toFile += JSON.stringify(data[i],'',4) + "\n\n\n\t\t\t/* Следующий массив */\n\n";
-	}
-	
-	fs.writeFile('buildpack/css/sprite/'+ name +'.js', toFile, function(err) {
-	    if(err) {
-	    	console.log(err); throw err;
-	    }
-	    console.log('the file "'+ name +'.js" was created!');
-	});
-}
