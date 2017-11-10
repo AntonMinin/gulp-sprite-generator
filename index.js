@@ -25,7 +25,6 @@ var log = function() {
     gutil.log.apply(gutil, args);
 };
 
-
 var getImages = (function() {
     var httpRegex, imageRegex, filePathRegex, pngRegex, retinaRegex;
 
@@ -103,6 +102,7 @@ var getImages = (function() {
             } else {
                 filePath = path.resolve(file.path.substring(0, file.path.lastIndexOf(path.sep)), filePath);
             }
+
             image.path = filePath;
 
             // reset lastIndex
@@ -115,6 +115,7 @@ var getImages = (function() {
         
         // reset lastIndex
         imageRegex.lastIndex = 0;
+
         // remove nulls and duplicates
         images = _.chain(images)
             .filter()
@@ -134,9 +135,9 @@ var getImages = (function() {
                             async.filter(
                                 images,
                                 function(image, ok) {
-                                    Q(filter(image)).then(function(data) {ok(null, data);});
+                                    Q(filter(image)).then(ok);
                                 },
-                                function(err, images) {
+                                function(images) {
                                     next(null, images);
                                 }
                             );
@@ -145,6 +146,7 @@ var getImages = (function() {
                             if (err) {
                                 return reject(err);
                             }
+
                             resolve(images);
                         }
                     );
@@ -163,6 +165,7 @@ var getImages = (function() {
                                         if (group) {
                                             image.group.push(group);
                                         }
+
                                         done(null, image);
                                     })
                                     .catch(done);
@@ -172,6 +175,7 @@ var getImages = (function() {
                             if (err) {
                                 return reject(err);
                             }
+
                             resolve(images);
                         }
                     );
@@ -180,33 +184,20 @@ var getImages = (function() {
             // acquisition of image metadata
             .then(function(images) {
                 return Q.Promise(function(resolve, reject) {
-                    async.reduce(
-                        options.groupBy,
-                        images,
-                        function(images, groupBy, next) {
-                            async.map(images, function(image, done) {                            	
-                            	Q(image)
-                                .then(function(image) {
-                                	im.identify(image.path, function(err, features){
-                                		if (err) throw err;
-                                		image.signature = {};
-//                                		image.signature.key = ""+ features["number pixels"] + "_" + features.filesize + "_" + features.geometry;
-                                		image.signature.key = ""+ features.properties.signature;
-                                		image.signature.path = ""+ features.artifacts.filename;
-                                        done(null, image);
-                                	});
-                                })
-                                .catch(done);
-                            	
-                            }, next);
-                        },
-                        function(err, images) {
-                            if (err) {
-                                return reject(err);
-                            }
-                            resolve(images);
+                	async.map(images, function(image, callback) {
+                		im.identify(image.path, function(err, features){
+        					if (err) return callback(err);        					
+        					image.signature = {};
+                    		image.signature.key = ""+ features.properties.signature;
+                    		image.signature.path = ""+ features.artifacts.filename;
+                    		callback(null, image);
+        				});  
+                	}, function(err, images) {
+                		if (err) {
+                            return reject(err);
                         }
-                    );
+                		resolve(images);
+                	});
                 });
             });
     }
@@ -259,6 +250,10 @@ var callSpriteSmithWith = (function() {
                 config = _.merge({}, options, {
                     src: unique(_.map(images, getPath))
                 });
+                
+//                config = _.merge({}, options, {
+//                    src: _.map(images, 'path')
+//                });
                 // enlarge padding, if its retina                
                 if (_.every(images, function(image) {return image.isRetina})) {
                     ratio = _.chain(images).flatten('retinaRatio').uniq().value();
